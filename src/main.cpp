@@ -64,8 +64,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 DHT dht(DHTPIN, DHTTYPE); // ประกาศออบเจ็กต์เซนเซอร์ DHT11
 
 // ตั้งค่าการเชื่อมต่อ WiFi และ ThingSpeak
-const char *ssid = "baymax_secure";        // กำหนดชื่อ WiFi
-const char *password = "nooooooooo";       // กำหนดรหัส WiFi
+const char *ssid = "POCO F6";              // กำหนดชื่อ WiFi
+const char *password = "iamgroot";         // กำหนดรหัส WiFi
 const char *server = "api.thingspeak.com"; // กำหนดเซิร์ฟเวอร์
 
 /*********************************
@@ -77,7 +77,7 @@ void setup()
 {
   Serial.begin(9600); // เริ่มการสื่อสาร Serial ที่ความเร็ว 115200 bps
 
-  Serial.println("Hello world!");
+  // Serial.println("Hello world!");
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
   {
@@ -101,7 +101,7 @@ void setup()
   display.display();
   display.clearDisplay();
 
-  // connectWiFi(); // เรียกฟังก์ชันเชื่อมต่อ WiFi
+  connectWiFi(); // เรียกฟังก์ชันเชื่อมต่อ WiFi
 
   delay(2000); // หน่วงเวลา 2 วินาที
 }
@@ -131,13 +131,10 @@ void readSensors()
   // อ่านค่าความเข้มแสงจากเซนเซอร์ BH1750FVI
   lux = lightMeter.GetLightIntensity();
 
-  Serial.print("Light: ");
-  Serial.println(lux);
+  // Serial.print("Light: ");
+  // Serial.println(lux);
 
   // อ่านค่าอุณหภูมิและความชื้นจากเซนเซอร์ DHT11
-  // temp = dht.readTemperature();
-  // humi = dht.readHumidity();
-
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   humi = dht.readHumidity();
@@ -154,13 +151,13 @@ void readSensors()
   // Compute heat index in Celsius (isFahreheit = false)
   hic = dht.computeHeatIndex(temp, humi, false);
 
-  Serial.print(F("Humidity: "));
-  Serial.print(humi);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(temp);
-  Serial.print(F("°C  Heat index: "));
-  Serial.print(hic);
-  Serial.print(F("°C "));
+  // Serial.print(F("Humidity: "));
+  // Serial.print(humi);
+  // Serial.print(F("%  Temperature: "));
+  // Serial.print(temp);
+  // Serial.print(F("°C  Heat index: "));
+  // Serial.print(hic);
+  // Serial.print(F("°C "));
 }
 
 void updateOLED()
@@ -237,37 +234,44 @@ void connectWiFi()
 
 void sendToCloud()
 {
-  // if (millis() - lastUpdate < cloudUpdateInterval) {
-  //   return;
-  // }
+  if (millis() - lastUpdate < cloudUpdateInterval)
+  {
+    Serial.print("Skip ");
+    return;
+  }
 
-  // lastUpdate = millis();
+  lastUpdate = millis();
 
-  // // ตรวจสอบการเชื่อมต่อ WiFi ก่อนส่งข้อมูล
-  // if (WiFi.status() == WL_CONNECTED) {
-  //   HTTPClient http;  // ประกาศออบเจ็กต์ HTTPClient
-  //   WiFiClientSecure *client = new WiFiClientSecure;
+  // ตรวจสอบการเชื่อมต่อ WiFi ก่อนส่งข้อมูล
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.print("Connnn");
+    HTTPClient http; // ประกาศออบเจ็กต์ HTTPClient
+    WiFiClientSecure client;
 
-  //   client->setInsecure();
-  //   // สร้าง URL สำหรับส่งข้อมูลไปยัง Server
-  //   String url = "https://flask-hello-world-ciy8.onrender.com";
-  //   http.begin(*client, url);  // เริ่มการเชื่อมต่อ HTTP
+    client.setInsecure();
+    // สร้าง URL สำหรับส่งข้อมูลไปยัง Server
+    String url = "https://hydroponic-ject.onrender.com/" + String(lux) + "/" + String(temp) + "/" + String(humi) + "/" + String(tdsValue);
+    http.begin(client, url); // เริ่มการเชื่อมต่อ HTTP
 
-  //   // Send HTTP GET request
-  //   int httpResponseCode = http.GET();
+    // Send HTTP GET request
+    int httpResponseCode = http.GET();
 
-  //   if (httpResponseCode >= 0) {
-  //     Serial.print("HTTP Response code: ");
-  //     Serial.println(httpResponseCode);
-  //     String payload = http.getString();
-  //     Serial.println(payload);
-  //   } else {
-  //     Serial.print("Error code: ");
-  //     Serial.println(httpResponseCode);
-  //   }
+    if (httpResponseCode >= 0)
+    {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      String payload = http.getString();
+      Serial.println(payload);
+    }
+    else
+    {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
 
-  //   http.end();  // ปิดการเชื่อมต่อ HTTP
-  // }
+    http.end(); // ปิดการเชื่อมต่อ HTTP
+  }
 }
 
 //  Read data from TDS Sensor
@@ -292,9 +296,9 @@ void readTDS()
     float compensationCoefficient = 1.0 + 0.02 * (temp - 25.0);                                                                                                                      // temperature compensation formula: fFinalResult(25^C) = fFinalResult(current)/(1.0+0.02*(fTP-25.0));
     float compensationVolatge = averageVoltage / compensationCoefficient;                                                                                                            // temperature compensation
     tdsValue = (133.42 * compensationVolatge * compensationVolatge * compensationVolatge - 255.86 * compensationVolatge * compensationVolatge + 857.39 * compensationVolatge) * 0.5; // convert voltage value to tds value
-    Serial.print("TDS Value:");
-    Serial.print(tdsValue, 0);
-    Serial.println("ppm");
+    // Serial.print("TDS Value:");
+    // Serial.print(tdsValue, 0);
+    // Serial.println("ppm");
   }
 }
 
