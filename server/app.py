@@ -6,6 +6,6 @@ app = Flask(__name__)
 def hello_world():
     return "<p>Hello, World!</p>"
 
-@app.route("/<Light>/<temp>/<tds>")
+@app.route("/<light>/<temp>/<tds>")
 def get_light(light,temp,tds):
     return f"Light:{light} lux. {temp} c {tds} ppm"
